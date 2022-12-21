@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, WorkspaceLeaf } from 'obsidian';
 
 // Remember to rename these classes and interfaces!
 
@@ -9,73 +9,86 @@ interface MyPluginSettings {
 const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
 }
-
+function log(e: string | number | TFile | null) {
+	if ((window as any)._debug) {
+		console.log(e);
+	}
+}
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
 	async onload() {
-		await this.loadSettings();
+		const _this = this;
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
+		this.app.workspace.on('file-open', (e) => {
+			log(e);
+			const active = (app.workspace as any).getActiveFileView();
+			if (!(active && active.canvas)) {
+				return;
 			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
+			window.setInterval(() => {
+				log(111);
+				const active = (app.workspace as any).getActiveFileView();
+				if (!(active && active.canvas)) {
+					return;
 				}
+				const canvas = active && active.canvas;
+				canvas.nodes.forEach((node: string | number | TFile | null) => {
+					(node as any).onFileFocus = function () {
+						log(node);
+						_this.findSecondLevelLinks(node);
+
+					}
+				}
+				)
+
+			}, 1000)
+		}
+		)
+	}
+
+	async findSecondLevelLinks(node: string | number | TFile | null) {
+		if(!node) {
+			return;
+		}
+		const content = await app.vault.cachedRead((node as any).file);
+		const links = [...content.matchAll(/\[\[(.*?)\]\]/g)].map(match => match[0].replace('[[', '').replace(']]', '') + '.md');
+		if(links.length === 0) {
+			return;
+		}
+		const path = links[Math.floor(links.length * Math.random())];
+		try {
+			await app.vault.create(path, '')
+		} catch (error) { }
+
+		let backlink: any;
+		app.workspace.iterateAllLeaves((leaf) => {
+			const type = leaf.getViewState().type;
+			if (type === 'backlink') {
+				backlink = leaf;
 			}
-		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		}
+		);
+		if (!backlink) {
+			backlink = app.workspace.getRightLeaf(false);
+		}
+		window.setTimeout(() => {
+			backlink.setViewState({
+				"type": "backlink",
+				"state": {
+					"file": path,
+					"collapseAll": false,
+					"extraContext": false,
+					"sortOrder": "alphabetical",
+					"showSearch": false,
+					"searchQuery": "",
+					"backlinkCollapsed": false,
+					"unlinkedCollapsed": true
+				},
+				active: true
+			})
+		}
+			, 2000)
 	}
 
 	onunload() {
@@ -97,12 +110,12 @@ class SampleModal extends Modal {
 	}
 
 	onOpen() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.setText('Woah!');
 	}
 
 	onClose() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.empty();
 	}
 }
@@ -116,11 +129,11 @@ class SampleSettingTab extends PluginSettingTab {
 	}
 
 	display(): void {
-		const {containerEl} = this;
+		const { containerEl } = this;
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
+		containerEl.createEl('h2', { text: 'Settings for my awesome plugin.' });
 
 		new Setting(containerEl)
 			.setName('Setting #1')
@@ -129,7 +142,7 @@ class SampleSettingTab extends PluginSettingTab {
 				.setPlaceholder('Enter your secret')
 				.setValue(this.plugin.settings.mySetting)
 				.onChange(async (value) => {
-					console.log('Secret: ' + value);
+					log('Secret: ' + value);
 					this.plugin.settings.mySetting = value;
 					await this.plugin.saveSettings();
 				}));
