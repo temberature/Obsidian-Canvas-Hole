@@ -1,11 +1,11 @@
 {
-	"id": "obsidian-sample-plugin",
-	"name": "Sample Plugin",
+	"id": "obsidian-canvas-hole",
+	"name": "Obsidian Canvas Hole",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "This is a sample plugin for Obsidian. This plugin demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "Show second level links",
+	"author": "TianDatong",
+	"authorUrl": "https://github.com/temberature",
+	"fundingUrl": "https://github.com/temberature/Obsidian-Canvas-Hole",
 	"isDesktopOnly": false
 }
