@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-canvas-hole",
 	"name": "Obsidian Canvas Hole",
-	"version": "1.0.0",
+	"version": "v0.1.0-alpha",
 	"minAppVersion": "0.15.0",
 	"description": "Show second level links",
 	"author": "TianDatong",
